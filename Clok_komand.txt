@@ -1,0 +1,47 @@
+
+
+sshpass -p 'host password' scp -r /opt/clock "host@192.168.65.110:/opt/"
+
+
+sudo cp /opt/clock/CClockDigital.php  /usr/share/zabbix/include/classes/html/;
+
+sudo cp /opt/clock/CClock.php  /usr/share/zabbix/include/classes/html/CClock.php;
+sudo cp /opt/clock/CControllerWidgetClockView.php /usr/share/zabbix/app/controllers/CControllerWidgetClockView.php;
+sudo cp /opt/clock/CWidgetFormClock.php /usr/share/zabbix/include/classes/widgets/forms/CWidgetFormClock.php;
+sudo cp /opt/clock/class.widget.clock.js /usr/share/zabbix/js/widgets/class.widget.clock.js;
+sudo cp /opt/clock/monitoring.widget.clock.view.php /usr/share/zabbix/app/views/monitoring.widget.clock.view.php;
+sudo cp /opt/clock/widget.clock.form.view.js.php /usr/share/zabbix/include/classes/widgets/views/js/widget.clock.form.view.js.php;
+sudo cp /opt/clock/widget.clock.form.view.php /usr/share/zabbix/include/classes/widgets/views/widget.clock.form.view.php;
+
+
+sudo cp /opt/old_clock/CClock.php  /usr/share/zabbix/include/classes/html/CClock.php;
+sudo cp /opt/old_clock/CControllerWidgetClockView.php /usr/share/zabbix/app/controllers/CControllerWidgetClockView.php;
+sudo cp /opt/old_clock/CWidgetFormClock.php /usr/share/zabbix/include/classes/widgets/forms/CWidgetFormClock.php;
+sudo cp /opt/old_clock/class.widget.clock.js /usr/share/zabbix/js/widgets/class.widget.clock.js;
+sudo cp /opt/old_clock/monitoring.widget.clock.view.php /usr/share/zabbix/app/views/monitoring.widget.clock.view.php;
+sudo cp /opt/old_clock/widget.clock.form.view.js.php /usr/share/zabbix/include/classes/widgets/views/js/widget.clock.form.view.js.php;
+sudo cp /opt/old_clock/widget.clock.form.view.php /usr/share/zabbix/include/classes/widgets/views/widget.clock.form.view.php;
+
+
+sudo cp /usr/share/zabbix/include/classes/html/CClock.php /opt/old_clock/;
+sudo cp /usr/share/zabbix/app/controllers/CControllerWidgetClockView.php /opt/old_clock/;
+sudo cp /usr/share/zabbix/include/classes/widgets/forms/CWidgetFormClock.php /opt/old_clock/;
+sudo cp /usr/share/zabbix/js/widgets/class.widget.clock.js /opt/old_clock/;
+sudo cp /usr/share/zabbix/app/views/monitoring.widget.clock.view.php /opt/old_clock/;
+sudo cp /usr/share/zabbix/include/classes/widgets/views/js/widget.clock.form.view.js.php /opt/old_clock/;
+sudo cp /usr/share/zabbix/include/classes/widgets/views/widget.clock.form.view.php /opt/old_clock/ ;
+
+
+
+diff -u  /dev/null /opt/clock/CClockDigital.php | sed 's|+++ /opt/clock/CClockDigital.php|+++ /usr/share/zabbix/include/classes/html/CClockDigital.php|' >> /opt/clock/Clock.patch;
+diff -u  /usr/share/zabbix/include/classes/html/CClock.php /opt/clock/CClock.php | sed 's|+++ /opt/clock/CClock.php|+++ /usr/share/zabbix/include/classes/html/CClock.php|' >> /opt/clock/Clock.patch;
+diff -u  /usr/share/zabbix/app/controllers/CControllerWidgetClockView.php /opt/clock/CControllerWidgetClockView.php | sed 's|+++ /opt/clock/CControllerWidgetClockView.php|+++ /usr/share/zabbix/app/controllers/CControllerWidgetClockView.php|' >> /opt/clock/Clock.patch;
+diff -u  /usr/share/zabbix/include/classes/widgets/forms/CWidgetFormClock.php /opt/clock/CWidgetFormClock.php | sed 's|+++ /opt/clock/CWidgetFormClock.php|+++ /usr/share/zabbix/include/classes/widgets/forms/CWidgetFormClock.php|' >> /opt/clock/Clock.patch;
+diff -u  /usr/share/zabbix/js/widgets/class.widget.clock.js /opt/clock/class.widget.clock.js | sed 's|+++ /opt/clock/class.widget.clock.js|+++ /usr/share/zabbix/js/widgets/class.widget.clock.js|' >> /opt/clock/Clock.patch;
+diff -u  /usr/share/zabbix/app/views/monitoring.widget.clock.view.php /opt/clock/monitoring.widget.clock.view.php | sed 's|+++ /opt/clock/monitoring.widget.clock.view.php|+++ /usr/share/zabbix/app/views/monitoring.widget.clock.view.php|' >> /opt/clock/Clock.patch;
+diff -u  /usr/share/zabbix/include/classes/widgets/views/js/widget.clock.form.view.js.php /opt/clock/widget.clock.form.view.js.php | sed 's|+++ /opt/clock/widget.clock.form.view.js.php|+++ /usr/share/zabbix/include/classes/widgets/views/js/widget.clock.form.view.js.php|' >> /opt/clock/Clock.patch;
+diff -u  /usr/share/zabbix/include/classes/widgets/views/widget.clock.form.view.php /opt/clock/widget.clock.form.view.php | sed 's|+++ /opt/clock/widget.clock.form.view.php|+++ /usr/share/zabbix/include/classes/widgets/views/widget.clock.form.view.php|' >> /opt/clock/Clock.patch;
+
+
+
+sudo patch -d / -p0 < /opt/clock/Clock.patch

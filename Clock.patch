@@ -1,0 +1,343 @@
+--- /dev/null	2025-08-23 18:18:03.657326913 +0300
++++ /usr/share/zabbix/include/classes/html/CClockDigital.php	2025-05-27 23:55:42.130619849 +0300
+@@ -0,0 +1,72 @@
++<?php
++/*
++** Zabbix
++** Copyright (C) 2001-2024 Zabbix SIA
++**
++** This program is free software; you can redistribute it and/or modify
++** it under the terms of the GNU General Public License as published by
++** the Free Software Foundation; either version 2 of the License, or
++** (at your option) any later version.
++**
++** This program is distributed in the hope that it will be useful,
++** but WITHOUT ANY WARRANTY; without even the implied warranty of
++** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++** GNU General Public License for more details.
++**
++** You should have received a copy of the GNU General Public License
++** along with this program; if not, write to the Free Software
++** Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++**/
++
++
++class CClockDigital extends CDiv {
++
++
++    private $width ; // Устанавливаем ширину по умолчанию
++    private $height ; // Устанавливаем высоту по умолчанию
++    private $is_enabled = true;
++
++    public function __construct() {
++        parent::__construct();
++        $this->addClass(ZBX_STYLE_CLOCK);
++    }
++//$form = CClock::getForm(WIDGET_CLOCK, $data, $templateid);
++
++    public function setWidth($value) {
++        $this->width = $value;
++        return $this;
++    }
++
++    public function setHeight($value) {
++        $this->height = $value;
++        return $this;
++    }
++
++    public function setEnabled($is_enabled) {
++        $this->is_enabled = $is_enabled;
++        return $this;
++    }
++
++    private function build() {
++        $time = date('H:i:s'); // Получаем текущее время с секундами.
++        $digitalClock = (new CTag('div', true))
++            ->setAttribute('class', 'digital-clock')
++            ->addItem($time);
++
++        // Устанавливаем размеры часов
++        $digitalClock->setAttribute('style', 'width: '.$this->width.'px; height:'.$this->height.'px; font-size: 10em; margin-top: 60px;'); // Увеличиваем шрифт
++
++        if (!$this->is_enabled) {
++            $digitalClock->addClass(ZBX_STYLE_DISABLED);
++        }
++
++        $this->addItem($digitalClock);
++    }
++
++    public function toString($destroy = true) {
++        $this->build();
++        return parent::toString($destroy);
++    }
++
++
++}
+--- /usr/share/zabbix/include/classes/html/CClock.php	2025-08-23 18:31:07.201307167 +0300
++++ /usr/share/zabbix/include/classes/html/CClock.php	2025-03-11 15:41:50.000000000 +0300
+@@ -1,7 +1,7 @@
+ <?php
+ /*
+ ** Zabbix
+-** Copyright (C) 2001-2025 Zabbix SIA
++** Copyright (C) 2001-2024 Zabbix SIA
+ **
+ ** This program is free software; you can redistribute it and/or modify
+ ** it under the terms of the GNU General Public License as published by
+--- /usr/share/zabbix/app/controllers/CControllerWidgetClockView.php	2025-08-23 18:31:07.216307167 +0300
++++ /usr/share/zabbix/app/controllers/CControllerWidgetClockView.php	2025-08-23 18:32:36.924304906 +0300
+@@ -1,7 +1,7 @@
+ <?php
+ /*
+ ** Zabbix
+-** Copyright (C) 2001-2025 Zabbix SIA
++** Copyright (C) 2001-2024 Zabbix SIA
+ **
+ ** This program is free software; you can redistribute it and/or modify
+ ** it under the terms of the GNU General Public License as published by
+@@ -40,6 +40,17 @@
+ 		$time_zone_offset = null;
+ 		$is_enabled = true;
+ 		$critical_error = null;
++		$clock_type1 = true;
++
++		switch ($fields['clock_type']) {
++		case 0:
++			$clock_type1 = false;
++			break;
++		case 1:
++			$clock_type1 = true;
++			break;
++		}
++
+ 
+ 		switch ($fields['time_type']) {
+ 			case TIME_TYPE_HOST:
+@@ -109,7 +120,8 @@
+ 						$critical_error = _('No permissions to referred object or it does not exist!');
+ 					}
+ 				}
+-				break;
++
++		break;
+ 
+ 			case TIME_TYPE_SERVER:
+ 				$name = _('Server');
+@@ -130,6 +142,7 @@
+ 				'time' => $time,
+ 				'time_zone_offset' => $time_zone_offset,
+ 				'is_enabled' => $is_enabled,
++				'clock_type1' => $clock_type1,
+ 				'critical_error' => $critical_error
+ 			],
+ 			'user' => [
+--- /usr/share/zabbix/include/classes/widgets/forms/CWidgetFormClock.php	2025-08-23 18:31:07.217307167 +0300
++++ /usr/share/zabbix/include/classes/widgets/forms/CWidgetFormClock.php	2025-08-21 22:50:01.795880587 +0300
+@@ -1,7 +1,7 @@
+ <?php
+ /*
+ ** Zabbix
+-** Copyright (C) 2001-2025 Zabbix SIA
++** Copyright (C) 2001-2024 Zabbix SIA
+ **
+ ** This program is free software; you can redistribute it and/or modify
+ ** it under the terms of the GNU General Public License as published by
+@@ -41,7 +41,7 @@
+ 
+ 		$this->fields[$field_time_type->getName()] = $field_time_type;
+ 
+-		// Item field.
++		 		// Item field.
+ 		$field_item = (new CWidgetFieldMsItem('itemid', _('Item'), $templateid))
+ 			->setFlags(CWidgetField::FLAG_LABEL_ASTERISK)
+ 			->setMultiple(false);
+@@ -50,8 +50,28 @@
+ 			$field_item->setValue($this->data['itemid']);
+ 		}
+ 
+-		$this->fields[$field_item->getName()] = $field_item;
++		 $this->fields[$field_item->getName()] = $field_item;
++
++		 		// Select source type field.
++		$field_source_type = (new CWidgetFieldRadioButtonList('clock_type', _('Тип часов'), [
++			0 => _('Аналоговые'),
++			1 => _('Цифровые')
++		]))
++			->setDefault(1)
++			->setAction('ZABBIX.Dashboard.reloadWidgetProperties()')
++			->setModern(true);
++
++		if (array_key_exists('clock_type', $this->data)) {
++			$field_source_type->setValue($this->data['clock_type']);
++		}
++
++		$this->fields[$field_source_type->getName()] = $field_source_type;
++
++
+ 	}
++public function getFieldValue(string $name) {
++       return isset($this->fields[$name]) ? $this->fields[$name]->getValue() : null;
++   }
+ 
+ 	public function validate($strict = false): array {
+ 		$errors = parent::validate($strict);
+@@ -66,4 +86,5 @@
+ 
+ 		return $errors;
+ 	}
++
+ }
+--- /usr/share/zabbix/js/widgets/class.widget.clock.js	2025-08-23 18:31:07.218307167 +0300
++++ /usr/share/zabbix/js/widgets/class.widget.clock.js	2025-03-12 14:15:46.000000000 +0300
+@@ -1,6 +1,6 @@
+ /*
+ ** Zabbix
+-** Copyright (C) 2001-2025 Zabbix SIA
++** Copyright (C) 2001-2024 Zabbix SIA
+ **
+ ** This program is free software; you can redistribute it and/or modify
+ ** it under the terms of the GNU General Public License as published by
+@@ -22,7 +22,6 @@
+ 
+ 	_init() {
+ 		super._init();
+-
+ 		this._time_offset = 0;
+ 		this._interval_id = null;
+ 
+@@ -70,11 +69,18 @@
+ 	}
+ 
+ 	_startClock() {
+-		if (this._has_contents) {
+-			this._interval_id = setInterval(() => this._clockHandsRotate(), 1000);
+-			this._clockHandsRotate();
+-		}
+-	}
++    if (this._has_contents) {
++
++        // Обновляем позицию стрелок (если они есть)
++        this._interval_id = setInterval(() => {
++            this._clockHandsRotate();
++            this._updateDigitalClock();  // Вызываем обновление цифровых часов
++        }, 1000);
++
++        this._clockHandsRotate(); // Обновляем сразу при запуске
++        this._updateDigitalClock(); // Обновляем цифровые часы сразу при запуске
++    }
++}
+ 
+ 	_stopClock() {
+ 		if (this._interval_id !== null) {
+@@ -83,6 +89,27 @@
+ 		}
+ 	}
+ 
++
++
++	_updateDigitalClock() {
++   // Получаем текущее время
++
++		const clock_svg = this._target.querySelector('.digital-clock');
++				if (clock_svg !== null) {
++					const now = new Date();
++					now.setTime(now.getTime() - this._time_offset);
++
++
++   let hours = String(now.getHours()).padStart(2, '0');
++   let minutes = String(now.getMinutes()).padStart(2, '0');
++   let seconds = String(now.getSeconds()).padStart(2, '0');
++
++    // Обновляем содержимое элемента с цифровыми часами
++   document.querySelector('.digital-clock').innerText = `${hours}:${minutes}:${seconds}`;
++
++	}
++}
++
+ 	_clockHandsRotate() {
+ 		const clock_svg = this._target.querySelector('.clock-svg');
+ 
+--- /usr/share/zabbix/app/views/monitoring.widget.clock.view.php	2025-08-23 18:31:07.218307167 +0300
++++ /usr/share/zabbix/app/views/monitoring.widget.clock.view.php	2025-03-11 15:41:50.000000000 +0300
+@@ -1,7 +1,7 @@
+ <?php
+ /*
+ ** Zabbix
+-** Copyright (C) 2001-2025 Zabbix SIA
++** Copyright (C) 2001-2024 Zabbix SIA
+ **
+ ** This program is free software; you can redistribute it and/or modify
+ ** it under the terms of the GNU General Public License as published by
+@@ -32,10 +32,13 @@
+ 	];
+ }
+ else {
++
++	if ($data['clock']['clock_type1'] === true)  {
++
+ 	$output = [
+ 		'name' => $data['name'],
+ 		'body' =>
+-			(new CClock())
++			(new CClockDigital())
+ 				->setEnabled($data['clock']['is_enabled'])
+ 				->toString(),
+ 		'clock_data' => [
+@@ -43,6 +46,20 @@
+ 			'time_zone_offset' => $data['clock']['time_zone_offset']
+ 		]
+ 	];
++	}
++	else {
++		$output = [
++		'name' => $data['name'],
++		'body' =>
++			(new CClock())
++				->setEnabled($data['clock']['is_enabled'])
++				->toString(),
++		'clock_data' => [
++			'time' => $data['clock']['time'],
++			'time_zone_offset' => $data['clock']['time_zone_offset']
++		]
++		];
++	}
+ }
+ 
+ if (($messages = getMessages()) !== null) {
+--- /usr/share/zabbix/include/classes/widgets/views/js/widget.clock.form.view.js.php	2025-08-23 18:31:07.218307167 +0300
++++ /usr/share/zabbix/include/classes/widgets/views/js/widget.clock.form.view.js.php	2025-03-11 15:41:50.000000000 +0300
+@@ -1,7 +1,7 @@
+ <?php declare(strict_types = 0);
+ /*
+ ** Zabbix
+-** Copyright (C) 2001-2025 Zabbix SIA
++** Copyright (C) 2001-2024 Zabbix SIA
+ **
+ ** This program is free software; you can redistribute it and/or modify
+ ** it under the terms of the GNU General Public License as published by
+--- /usr/share/zabbix/include/classes/widgets/views/widget.clock.form.view.php	2025-08-23 18:31:07.219307167 +0300
++++ /usr/share/zabbix/include/classes/widgets/views/widget.clock.form.view.php	2025-03-11 15:41:50.000000000 +0300
+@@ -1,7 +1,7 @@
+ <?php
+ /*
+ ** Zabbix
+-** Copyright (C) 2001-2025 Zabbix SIA
++** Copyright (C) 2001-2024 Zabbix SIA
+ **
+ ** This program is free software; you can redistribute it and/or modify
+ ** it under the terms of the GNU General Public License as published by
+@@ -45,6 +45,14 @@
+ $form_list->addRow(CWidgetHelper::getMultiselectLabel($fields['itemid']), $field_itemid, null, 'js-row-itemid');
+ $scripts[] = $field_itemid->getPostJS();
+ 
++
++$form_list->addRow(
++	CWidgetHelper::getLabel($fields['clock_type']),
++	CWidgetHelper::getRadioButtonList($fields['clock_type'])
++);
++
++
++
+ $form
+ 	->addItem($form_list)
+ 	->addItem(
